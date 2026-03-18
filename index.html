@@ -53,6 +53,12 @@
       transition: opacity .25s ease, transform .25s cubic-bezier(.22,1,.36,1);
     }
 
+    .chatLauncher, .chatButton, .closeBtn, .sendButton, .quickChip {
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+      user-select: none;
+    }
+
     .greetingBubble {
       position: relative;
       display: flex;
@@ -190,7 +196,6 @@
     }
     .chatPanel.dragging { cursor:grabbing !important; user-select:none; }
 
-    /* hide launcher when chat is open on mobile */
     .chatLauncher.hidden {
       opacity: 0;
       pointer-events: none;
@@ -377,6 +382,31 @@
       border-bottom-left-radius: 4px;
       border: 1px solid var(--chatBorder);
     }
+
+    /* Bot message formatting */
+    .msgRow.bot .msgBubble ul {
+      padding-left: 4px;
+      margin: 4px 0 2px;
+      list-style: none;
+    }
+    .msgRow.bot .msgBubble ul li {
+      position: relative;
+      padding-left: 12px;
+      margin-bottom: 4px;
+    }
+    .msgRow.bot .msgBubble ul li::before {
+      content: '·';
+      position: absolute;
+      left: 0;
+      color: var(--maroon3);
+      font-size: 1.1em;
+      line-height: 1.5;
+    }
+    .msgRow.bot .msgBubble p {
+      margin-bottom: 5px;
+    }
+    .msgRow.bot .msgBubble p:last-child { margin-bottom: 0; }
+
     .msgTime {
       font-size: .6rem;
       color: var(--chatFaint);
@@ -450,7 +480,6 @@
     .sendButton:active { transform:scale(.91); }
     .sendButton svg { width:14px; height:14px; fill:white; }
 
-  
     @media (max-width: 480px) {
       .chatLauncher { bottom: 18px; right: 18px; }
       .chatPanel {
@@ -468,11 +497,7 @@
 </head>
 <body>
 
-<div class="pageContent">
-
-</div>
-
-<!-- copy-->
+<div class="pageContent"></div>
 
 <div class="chatLauncher" onclick="if(!isOpen) openChat()">
   <div class="greetingBubble">
@@ -567,171 +592,42 @@
   </div>
 </div>
 
-
-
 <script>
-  
   const GROQ_API_KEY = "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";
 
   const COLLEGE_DATA = `
-COLLEGE NAME:
-Christ Nagar College, Maranalloor, Thiruvananthapuram, Kerala
+COLLEGE NAME: Christ Nagar College, Maranalloor, Thiruvananthapuram, Kerala
 
-ABOUT COLLEGE:
-- Established in 2012
-- Affiliated to University of Kerala
-- Managed by CMI (Carmelites of Mary Immaculate)
-- Part of Christ Nagar Educational Institutions
-- Campus Size: Approximately 37 acres
-- Campus Type: Eco-friendly, green, peaceful environment
-- Nearby Location: Kattakkada
+ABOUT: Established 2012. Affiliated to University of Kerala. Managed by CMI. 37-acre eco-friendly campus near Kattakkada.
 
-VISION & MISSION:
-- Focus on holistic education (academic + moral values)
-- Emphasis on discipline and character building
-- Skill-oriented learning approach
+COURSES (UG): BCA, BBA, B.Com (Finance/Cooperation), BA English, B.Sc Psychology, B.Sc Computer Science — all 3 years.
+COURSES (PG): M.Com (Finance), M.Sc (selected subjects).
 
-DEPARTMENTS:
-- Department of Computer Applications
-- Department of Commerce
-- Department of Management Studies
-- Department of English
-- Department of Psychology
-- Department of Science
+FEES (approx/year): BCA ₹40k–50k | BBA ₹35k–45k | B.Com ₹30k–40k. Fees may vary yearly.
 
-COURSES OFFERED:
+ADMISSION: Applications open June, close July. Eligibility: Plus Two pass. Merit-based selection. Docs: SSLC & Plus Two certificates, TC, photos, ID proof.
 
-UNDERGRADUATE PROGRAMS:
-- BCA (Bachelor of Computer Applications)
-  Duration: 3 years
-  Subjects: Programming (C, Java, Python), DBMS, Web Development, Networking
+FACILITIES: Smart classrooms, computer labs, library, seminar halls, sports ground, cafeteria, hostel (boys & girls), college buses, parking.
 
-- BBA (Bachelor of Business Administration)
-  Duration: 3 years
-  Subjects: Marketing, HR, Finance, Entrepreneurship
+PLACEMENT: Placement cell, career guidance, interview prep, internship support. Recruiters: IT firms, startups, local companies.
 
-- B.Com (Finance / Cooperation)
-  Duration: 3 years
-  Subjects: Accounting, Taxation, Business Law
+TIMING: Classes 9AM–3:30PM | Office 9AM–4PM | Mon–Sat.
 
-- BA English
-  Duration: 3 years
-  Subjects: Literature, Communication, Linguistics
+CONTACT: Phone: 0471-XXXXXXX | Email: info@christnagar.ac.in | Website: cnc.ac.in
 
-- B.Sc Psychology
-  Duration: 3 years
-
-- B.Sc Computer Science
-  Duration: 3 years
-
-POSTGRADUATE PROGRAMS:
-- M.Com (Finance)
-- M.Sc (selected subjects)
-
-FEE STRUCTURE (APPROX):
-- BCA: ₹40,000 – ₹50,000 per year
-- BBA: ₹35,000 – ₹45,000 per year
-- B.Com: ₹30,000 – ₹40,000 per year
-(Note: Fees may vary yearly)
-
-ADMISSION PROCESS:
-- Mode: Online + Offline application
-- Start Date: June
-- Last Date: July (varies)
-- Eligibility: Plus Two (10+2) pass
-- Selection: Merit-based
-- Documents Required:
-  - SSLC & Plus Two certificates
-  - Transfer Certificate
-  - Passport size photos
-  - ID proof
-
-FACILITIES:
-- Smart Classrooms with projectors
-- Advanced Computer Labs with internet
-- Central Library with academic & reference books
-- Seminar halls and auditorium
-- Sports ground (football, cricket, volleyball)
-- Indoor games facilities
-- Cafeteria / Canteen
-- Separate hostel facilities (boys & girls)
-- College buses (transport facility across Trivandrum)
-- Parking area for students
-
-TECH & LAB FACILITIES:
-- Programming labs (C, Java, Python)
-- Internet-enabled systems
-- Basic project development support
-- Mini-project and final year project guidance
-
-PLACEMENT & TRAINING:
-- Placement assistance cell available
-- Career guidance sessions
-- Interview preparation & soft skill training
-- Internship support
-- Common recruiters: small IT firms, startups, local companies
-
-STUDENT ACTIVITIES:
-- Arts Fest (cultural programs, dance, music, drama)
-- Tech Fest (coding, robotics, IT events)
-- Sports meet
-- NSS (National Service Scheme)
-- Clubs:
-  - IT Club
-  - Commerce Club
-  - Literary Club
-  - Entrepreneurship Cell
-
-COLLEGE TIMING:
-- Class Timing: 9:00 AM – 3:30 PM
-- Office Timing: 9:00 AM – 4:00 PM
-- Working Days: Monday to Saturday
-
-RULES & DISCIPLINE:
-- Uniform may be required for some departments
-- ID card compulsory inside campus
-- Attendance minimum: 75%
-- Strict discipline policy
-- Mobile phone usage restricted in class
-
-EXAM & EVALUATION:
-- Internal exams (series exams)
-- Assignments & presentations
-- Final university exams (Kerala University)
-
-TRANSPORT:
-- College buses available from major areas in Trivandrum
-- Easily accessible via private buses (Kattakkada route)
-
-LOCATION DETAILS:
-- Maranalloor, Thiruvananthapuram, Kerala
-- Near Kattakkada Junction
-- Peaceful rural campus environment
-
-CONTACT DETAILS:
-- Phone: 0471-XXXXXXX
-- Email: info@christnagar.ac.in
-- Website: https://cnc.ac.in
-
-EXTRA FEATURES:
-- Green campus initiatives (plastic-free, eco-friendly)
-- Value education programs
-- Guest lectures & workshops
-- Industry exposure programs
-
-CHATBOT QUICK RESPONSES:
-- "courses" → Lists all UG & PG courses
-- "fees" → Shows fee structure
-- "admission" → Gives admission details
-- "location" → Shows college location
-- "facilities" → Lists campus facilities
-- "placement" → Info about placements
+LOCATION: Maranalloor, near Kattakkada Junction, Thiruvananthapuram.
 `;
 
-  const SYSTEM_PROMPT = `You are a helpful assistant for Christ Nagar College, Trivandrum.
-Answer questions only based on the information provided below.
-If the answer is not found in the information, say "I don't have that information. Please contact the college office directly at 0471-XXXXXXX"
-Do not use any outside knowledge. Only use what is provided below.
+  const SYSTEM_PROMPT = `You are a concise assistant for Christ Nagar College, Trivandrum.
+Answer ONLY using the college information provided. Do not use outside knowledge.
+If something is not in the data, say: "I don't have that info. Please call 0471-XXXXXXX."
+
+STRICT RESPONSE RULES:
+- Maximum 3 sentences OR a short bullet list (max 5 items). Never both.
+- No long paragraphs. No repetition. Be direct.
+- For lists, use "- " at the start of each item on a new line.
+- Plain text only — no markdown bold, no asterisks, no headers.
+- If asked something general like "how is the college", give 2–3 short sentences only.
 
 --- COLLEGE INFORMATION ---
 ${COLLEGE_DATA}`;
@@ -766,7 +662,6 @@ ${COLLEGE_DATA}`;
     launcher.classList.remove("hidden");
   }
 
-
   const bubble = document.querySelector(".greetingBubble");
   function showBubble() { bubble.classList.add("visible"); }
   function hideBubble() { bubble.classList.remove("visible"); }
@@ -780,15 +675,38 @@ ${COLLEGE_DATA}`;
   }
   setTimeout(bubbleCycle, 1500);
 
-  
   function getTime() {
     return new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+  }
+
+  // Render plain-text bot response into clean HTML
+  function formatResponse(text) {
+    const lines = text.split('\n');
+    let html = '';
+    let inList = false;
+    for (let raw of lines) {
+      const line = raw.trim();
+      if (!line) {
+        if (inList) { html += '</ul>'; inList = false; }
+        continue;
+      }
+      if (line.startsWith('- ') || line.startsWith('• ')) {
+        if (!inList) { html += '<ul>'; inList = true; }
+        html += `<li>${line.slice(2)}</li>`;
+      } else {
+        if (inList) { html += '</ul>'; inList = false; }
+        html += `<p>${line}</p>`;
+      }
+    }
+    if (inList) html += '</ul>';
+    return html;
   }
 
   function appendMsg(role, text) {
     const row = document.createElement("div");
     row.className = `msgRow ${role}`;
-    row.innerHTML = `<div class="msgBubble">${text}</div><div class="msgTime">${getTime()}</div>`;
+    const content = role === 'bot' ? formatResponse(text) : text;
+    row.innerHTML = `<div class="msgBubble">${content}</div><div class="msgTime">${getTime()}</div>`;
     messages.appendChild(row);
     messages.scrollTop = messages.scrollHeight;
   }
@@ -822,7 +740,7 @@ ${COLLEGE_DATA}`;
         },
         body: JSON.stringify({
           model: "llama-3.3-70b-versatile",
-          max_tokens: 500,
+          max_tokens: 180,
           messages: [
             { role: "system", content: SYSTEM_PROMPT },
             { role: "user",   content: message }
