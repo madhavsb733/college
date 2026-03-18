@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CNC Chatbot Widget</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #141414;
+      --surface:      #1e1e1e;
+      --surface2:     #252525;
+      --surface3:     #2e2e2e;
+      --maroon:       #8b3a4a;
+      --maroon2:      #a84458;
+      --maroon3:      #c45068;
+      --maroonGlow:   rgba(139,58,74,.35);
+      --white:        #ffffff;
+      --chatText:     #e8e8e8;
+      --chatMuted:    #9a9a9a;
+      --chatFaint:    #616161;
+      --chatBorder:   rgba(255,255,255,.06);
+      --chatBorderRed:rgba(139,58,74,.3);
+    }
+
+    body {
+      background: #1a1a1a;
+      min-height: 100vh;
+      font-family: 'Sora', sans-serif;
+      color: var(--chatText);
+    }
+
+    .pageContent {
+      padding: 32px;
+      color: #555;
+      font-size: .85rem;
+      line-height: 1.6;
+    }
+
+    /* ── LAUNCHER ── */
+    .chatLauncher {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .chatLauncher.hidden { display: none; }
+
+    .greetingBubble {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg);
+      border: 1px solid rgba(168,68,88,.4);
+      color: var(--chatText);
+      font-size: .72rem;
+      font-weight: 500;
+      padding: 10px 14px 10px 11px;
+      border-radius: 12px 12px 4px 12px;
+      margin-right: 31px;
+      white-space: nowrap;
+      box-shadow: 0 8px 32px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.03);
+      letter-spacing: .03em;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateX(10px) scale(.95);
+      transition: opacity .4s cubic-bezier(.22,1,.36,1), transform .4s cubic-bezier(.22,1,.36,1);
+    }
+
+    .greetingBubble.visible {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+
+    .bubbleDot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--maroon3);
+      flex-shrink: 0;
+      box-shadow: 0 0 8px rgba(196,80,104,.8);
+      animation: goldPulse 1.8s ease-in-out infinite;
+    }
+    @keyframes goldPulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:.4; transform:scale(.65); }
+    }
+
+    .greetingBubble::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 55%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(168,68,88,.08), transparent);
+      animation: shimmer 3s ease-in-out infinite;
+    }
+    @keyframes shimmer {
+      0%       { left: -100%; }
+      45%,100% { left: 160%; }
+    }
+
+    .chatButton {
+      width: 62px; height: 62px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, var(--maroon2), var(--maroon));
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 28px rgba(0,0,0,.5);
+      position: relative;
+      animation: buttonBob 3.5s ease-in-out infinite;
+      transition: transform .2s cubic-bezier(.22,1,.36,1);
+    }
+    .chatButton:hover {
+      transform: scale(1.1) !important;
+      animation-play-state: paused;
+      box-shadow: 0 0 32px var(--maroonGlow), 0 8px 28px rgba(0,0,0,.5);
+    }
+    @keyframes buttonBob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+
+    .chatButton::before, .chatButton::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      animation: ringOut 2.6s ease-out infinite;
+    }
+    .chatButton::before { inset:-7px; border:1.5px solid rgba(139,58,74,.5); }
+    .chatButton::after  { inset:-15px; border:1px solid rgba(139,58,74,.22); animation-delay:.65s; }
+    @keyframes ringOut {
+      0%   { opacity:1; transform:scale(.88); }
+      100% { opacity:0; transform:scale(1.22); }
+    }
+
+    .botArm {
+      transform-origin: 4px 13px;
+      animation: armWave 4s ease-in-out infinite;
+    }
+    @keyframes armWave {
+      0%,40%,100% { transform:rotate(0deg); }
+      45%          { transform:rotate(-38deg); }
+      50%          { transform:rotate(0deg); }
+      55%          { transform:rotate(-38deg); }
+      60%          { transform:rotate(0deg); }
+    }
+
+    /* ── PANEL ── */
+    .chatPanel {
+      position: fixed;
+      bottom: 106px;
+      right: 28px;
+      z-index: 9998;
+      width: 360px;
+      height: 570px;
+      display: flex;
+      flex-direction: column;
+      border-radius: 20px;
+      overflow: hidden;
+      background: var(--bg);
+      border: 1px solid var(--chatBorder);
+      box-shadow: 0 32px 90px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.04);
+      transform-origin: bottom right;
+      opacity: 0;
+      transform: scale(.88) translateY(20px);
+      pointer-events: none;
+      transition: opacity .35s cubic-bezier(.22,1,.36,1), transform .35s cubic-bezier(.22,1,.36,1);
+    }
+    .chatPanel.open {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+      pointer-events: all;
+    }
+    .chatPanel.dragging { cursor:grabbing !important; user-select:none; }
+
+    /* ── HEADER ── */
+    .chatHeader {
+      flex-shrink: 0;
+      padding: 0 16px;
+      height: 66px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: grab;
+      position: relative;
+      background: var(--surface);
+      border-bottom: 1px solid var(--chatBorder);
+      z-index: 2;
+    }
+    .chatHeader:active { cursor:grabbing; }
+
+    .dragHandle {
+      position: absolute;
+      top: 8px; left: 50%; transform: translateX(-50%);
+      width: 30px; height: 3px;
+      background: rgba(255,255,255,.1);
+      border-radius: 2px;
+    }
+
+    .headerRobot {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--maroon), var(--maroon2));
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 14px var(--maroonGlow);
+    }
+    .headerRobot svg { width: 22px; height: 22px; }
+
+    .headerText { flex:1; min-width:0; }
+    .headerText h3 {
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--white);
+      letter-spacing: .01em;
+    }
+    .headerText p {
+      font-size: .67rem;
+      color: var(--chatMuted);
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .onlineDot {
+      width: 6px; height: 6px;
+      background: #4ade80;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 6px rgba(74,222,128,.6);
+      animation: dotBlink 2s infinite;
+    }
+    @keyframes dotBlink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .closeBtn {
+      width: 30px; height: 30px;
+      background: var(--surface3);
+      border: 1px solid var(--chatBorder);
+      border-radius: 8px;
+      color: var(--chatMuted);
+      font-size: .8rem;
+      cursor: pointer;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      transition: background .15s, color .15s;
+    }
+    .closeBtn:hover { color: var(--white); }
+
+    /* ── MESSAGES ── */
+    .messageArea {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 14px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+    .messageArea::-webkit-scrollbar { width: 3px; }
+    .messageArea::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+    .welcomeWrap { display:flex; flex-direction:column; gap:14px; }
+
+    .welcomeCard {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid var(--chatBorder);
+      position: relative;
+      overflow: hidden;
+    }
+    .welcomeCard::before {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 100px; height: 100px;
+      background: radial-gradient(circle, rgba(139,58,74,.35) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .welcomeRobot {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--maroon), var(--maroon2));
+      display: grid; place-items: center;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 18px var(--maroonGlow);
+    }
+    .welcomeRobot svg { width: 28px; height: 28px; }
+
+    .welcomeCard h4 {
+      font-size: .9rem;
+      font-weight: 600;
+      color: var(--white);
+      margin-bottom: 5px;
+    }
+    .welcomeCard p {
+      font-size: .73rem;
+      color: var(--chatMuted);
+      line-height: 1.6;
+    }
+
+    .chipsRow { display:flex; flex-wrap:wrap; gap:7px; }
+    .quickChip {
+      background: var(--surface2);
+      border: 1px solid var(--chatBorderRed);
+      color: var(--chatText);
+      font-family: 'Sora', sans-serif;
+      font-size: .69rem;
+      font-weight: 500;
+      padding: 7px 13px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all .16s;
+    }
+    .quickChip:hover {
+      background: var(--maroon);
+      border-color: var(--maroon);
+      color: var(--white);
+      box-shadow: 0 0 12px var(--maroonGlow);
+    }
+
+    .msgRow {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-top: 14px;
+      animation: msgSlideIn .26s cubic-bezier(.22,1,.36,1) both;
+    }
+    @keyframes msgSlideIn {
+      from { opacity:0; transform:translateY(8px); }
+      to   { opacity:1; transform:none; }
+    }
+    .msgRow.user { align-items:flex-end; }
+    .msgRow.bot  { align-items:flex-start; }
+
+    .msgBubble {
+      max-width: 84%;
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: .78rem;
+      line-height: 1.65;
+    }
+    .msgRow.user .msgBubble {
+      background: linear-gradient(135deg, var(--maroon2), var(--maroon));
+      color: var(--white);
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 18px var(--maroonGlow);
+    }
+    .msgRow.bot .msgBubble {
+      background: var(--surface2);
+      color: var(--chatText);
+      border-bottom-left-radius: 4px;
+      border: 1px solid var(--chatBorder);
+    }
+    .msgTime {
+      font-size: .6rem;
+      color: var(--chatFaint);
+      padding: 0 3px;
+    }
+
+    .typingRow .msgBubble {
+      display:flex; align-items:center; gap:5px;
+      padding: 14px 18px;
+    }
+    .typingDot {
+      width: 6px; height: 6px;
+      background: var(--chatFaint);
+      border-radius: 50%;
+      animation: dotBounce 1.1s infinite;
+    }
+    .typingDot:nth-child(2) { animation-delay:.18s; }
+    .typingDot:nth-child(3) { animation-delay:.36s; }
+    @keyframes dotBounce {
+      0%,60%,100% { transform:translateY(0); opacity:.4; }
+      30%          { transform:translateY(-5px); opacity:1; }
+    }
+
+    /* ── INPUT ── */
+    .inputArea {
+      padding: 10px 12px 12px;
+      background: var(--surface);
+      border-top: 1px solid var(--chatBorder);
+      flex-shrink: 0;
+      z-index: 2;
+    }
+    .inputRow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--chatBorder);
+      border-radius: 14px;
+      padding: 0 9px 0 14px;
+      height: 48px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .inputRow:focus-within {
+      border-color: var(--maroon);
+      box-shadow: 0 0 0 3px var(--maroonGlow);
+    }
+    .chatInput {
+      flex:1;
+      border:none; outline:none;
+      background:transparent;
+      font-family:'Sora',sans-serif;
+      font-size:.78rem;
+      color:var(--chatText);
+      resize:none;
+      height: 24px;
+      max-height:80px;
+      line-height:1.55;
+      padding: 0;
+    }
+    .chatInput::placeholder { color:var(--chatFaint); }
+
+    .sendButton {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--maroon3), var(--maroon));
+      border:none; border-radius:9px;
+      cursor:pointer;
+      display:grid; place-items:center;
+      flex-shrink:0;
+      transition: opacity .15s, transform .1s, box-shadow .15s;
+      box-shadow: 0 2px 10px var(--maroonGlow);
+    }
+    .sendButton:hover  { box-shadow: 0 0 18px var(--maroonGlow); }
+    .sendButton:active { transform:scale(.91); }
+    .sendButton svg { width:14px; height:14px; fill:white; }
+
+    /* ── MOBILE ── */
+    @media (max-width: 480px) {
+      .chatLauncher { bottom: 18px; right: 18px; }
+
+      .chatPanel {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 0 !important;
+        transform-origin: bottom center;
+      }
+
+      /* header locked to top always */
+      .chatHeader {
+        position: sticky;
+        top: 0;
+        cursor: default;
+        height: 60px;
+        flex-shrink: 0;
+      }
+
+      /* messages scroll freely in between */
+      .messageArea {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* input stays at bottom, keyboard pushes it up */
+      .inputArea {
+        position: sticky;
+        bottom: 0;
+        padding: 10px 12px 18px;
+        flex-shrink: 0;
+      }
+
+      .dragHandle { display:none; }
+      .chatInput  { font-size: 16px; } /* prevents iOS zoom */
+      .closeBtn   { width: 36px; height: 36px; font-size: .9rem; }
+      .sendButton { width: 38px; height: 38px; border-radius: 10px; }
+      .sendButton svg { width: 16px; height: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="pageContent">
+  <p>Your college website content sits here. The widget floats above it.</p>
+</div>
+
+<!-- ══════════════════════════════════════════
+  WIDGET — copy from here to END WIDGET
+  paste just before </body> in your site
+═══════════════════════════════════════════ -->
+
+<div class="chatLauncher" id="chatLauncher" onclick="openChat()">
+  <div class="greetingBubble">
+    <span class="bubbleDot"></span>
+    <span>How can I help you today?</span>
+  </div>
+  <div class="chatButton">
+    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="5" y="9" width="20" height="15" rx="4" fill="white" fill-opacity=".9"/>
+      <line x1="15" y1="9" x2="15" y2="5" stroke="white" stroke-opacity=".7" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="15" cy="4" r="2" fill="white" fill-opacity=".6"/>
+      <rect x="9" y="13" width="4" height="4" rx="1.2" fill="#7e1724"/>
+      <rect x="17" y="13" width="4" height="4" rx="1.2" fill="#7e1724"/>
+      <rect x="10" y="14" width="1.4" height="1.4" rx=".5" fill="white"/>
+      <rect x="18" y="14" width="1.4" height="1.4" rx=".5" fill="white"/>
+      <path d="M11 20.5 Q15 23.5 19 20.5" stroke="#7e1724" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <rect x="2.5" y="13" width="3.5" height="5" rx="1.5" fill="white" fill-opacity=".6"/>
+      <g class="botArm">
+        <rect x="24" y="13" width="3.5" height="5" rx="1.5" fill="white" fill-opacity=".9"/>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<div class="chatPanel" id="chatPanel">
+  <div class="chatHeader" id="dragHandle">
+    <div class="dragHandle"></div>
+    <div class="headerRobot">
+      <svg width="22" height="22" viewBox="0 0 30 30" fill="none">
+        <rect x="5" y="9" width="20" height="15" rx="4" fill="white" fill-opacity=".9"/>
+        <line x1="15" y1="9" x2="15" y2="5" stroke="white" stroke-opacity=".6" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="15" cy="4" r="2" fill="white" fill-opacity=".5"/>
+        <rect x="9" y="13" width="4" height="4" rx="1.2" fill="#7e1724"/>
+        <rect x="17" y="13" width="4" height="4" rx="1.2" fill="#7e1724"/>
+        <rect x="10" y="14" width="1.4" height="1.4" rx=".5" fill="white"/>
+        <rect x="18" y="14" width="1.4" height="1.4" rx=".5" fill="white"/>
+        <path d="M11 20.5 Q15 23.5 19 20.5" stroke="#7e1724" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <rect x="2.5" y="13" width="2.5" height="5" rx="1.25" fill="white" fill-opacity=".5"/>
+        <rect x="25" y="13" width="2.5" height="5" rx="1.25" fill="white" fill-opacity=".5"/>
+      </svg>
+    </div>
+    <div class="headerText">
+      <h3>Christ Nagar Assistant</h3>
+      <p><span class="onlineDot"></span>Online &middot; Ready to help</p>
+    </div>
+    <button class="closeBtn" onclick="closeChat(event)">&#x2715;</button>
+  </div>
+
+  <div class="messageArea" id="messageArea">
+    <div class="welcomeWrap">
+      <div class="welcomeCard">
+        <div class="welcomeRobot">
+          <svg width="28" height="28" viewBox="0 0 30 30" fill="none">
+            <rect x="5" y="9" width="20" height="15" rx="4" fill="white" fill-opacity=".9"/>
+            <line x1="15" y1="9" x2="15" y2="5" stroke="white" stroke-opacity=".6" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="15" cy="4" r="2" fill="white" fill-opacity=".5"/>
+            <rect x="9" y="13" width="4" height="4" rx="1.2" fill="#7e1724"/>
+            <rect x="17" y="13" width="4" height="4" rx="1.2" fill="#7e1724"/>
+            <rect x="10" y="14" width="1.4" height="1.4" rx=".5" fill="white"/>
+            <rect x="18" y="14" width="1.4" height="1.4" rx=".5" fill="white"/>
+            <path d="M11 20.5 Q15 23.5 19 20.5" stroke="#7e1724" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+            <rect x="2.5" y="13" width="2.5" height="5" rx="1.25" fill="white" fill-opacity=".5"/>
+            <rect x="25" y="13" width="2.5" height="5" rx="1.25" fill="white" fill-opacity=".5"/>
+          </svg>
+        </div>
+        <h4>Hello! I'm the CNC Assistant</h4>
+        <p>Ask me anything about Christ Nagar College — admissions, courses, fees, or contact info.</p>
+      </div>
+      <div class="chipsRow" id="chipsRow">
+        <button class="quickChip" onclick="sendChip(this)">Courses offered</button>
+        <button class="quickChip" onclick="sendChip(this)">Admission dates</button>
+        <button class="quickChip" onclick="sendChip(this)">Fee structure</button>
+        <button class="quickChip" onclick="sendChip(this)">Contact info</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="inputArea">
+    <div class="inputRow">
+      <textarea
+        id="chatInput"
+        class="chatInput"
+        rows="1"
+        placeholder="Ask me anything..."
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button class="sendButton" onclick="sendMessage()">
+        <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- END WIDGET -->
+
+<script>
+  const GROQ_API_KEY = "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";
+
+  const COLLEGE_DATA = `
+COLLEGE NAME: Christ Nagar College, Trivandrum
+
+COURSES OFFERED:
+- BCA: Bachelor of Computer Applications, 3 years, fees 45,000/year
+- BBA: Bachelor of Business Administration, 3 years, fees 40,000/year
+
+ADMISSION:
+- Applications open: June 1
+- Last date: July 15
+
+CONTACT:
+- Phone: 0471-XXXXXXX
+- Email: info@christnagar.ac.in
+- Office hours: 9am to 4pm, Monday to Saturday
+`;
+
+  const SYSTEM_PROMPT = `You are a helpful assistant for Christ Nagar College, Trivandrum.
+Answer questions only based on the information provided below.
+If the answer is not found in the information, say "I don't have that information. Please contact the college office directly at 0471-XXXXXXX"
+Do not use any outside knowledge. Only use what is provided below.
+
+--- COLLEGE INFORMATION ---
+${COLLEGE_DATA}`;
+
+  const panel    = document.getElementById("chatPanel");
+  const launcher = document.getElementById("chatLauncher");
+  const messages = document.getElementById("messageArea");
+  const input    = document.getElementById("chatInput");
+  const isMobile = () => window.innerWidth <= 480;
+  let isOpen = false;
+  let bubbleTimer;
+  let bubbleStopped = false;
+
+  function openChat() {
+    isOpen = !isOpen;
+    panel.classList.toggle("open", isOpen);
+    if (isOpen) {
+      bubbleStopped = true;
+      clearTimeout(bubbleTimer);
+      hideBubble();
+      if (isMobile()) launcher.classList.add("hidden");
+      setTimeout(() => input.focus(), 350);
+    } else {
+      if (isMobile()) launcher.classList.remove("hidden");
+    }
+  }
+
+  function closeChat(e) {
+    if (e) e.stopPropagation();
+    isOpen = false;
+    panel.classList.remove("open");
+    if (isMobile()) launcher.classList.remove("hidden");
+  }
+
+  const bubble = document.querySelector(".greetingBubble");
+  function showBubble() { bubble.classList.add("visible"); }
+  function hideBubble() { bubble.classList.remove("visible"); }
+  function bubbleCycle() {
+    if (bubbleStopped) return;
+    showBubble();
+    bubbleTimer = setTimeout(() => {
+      hideBubble();
+      bubbleTimer = setTimeout(bubbleCycle, 5000);
+    }, 5000);
+  }
+  setTimeout(bubbleCycle, 1500);
+
+  function getTime() {
+    return new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+  }
+
+  function appendMsg(role, text) {
+    const row = document.createElement("div");
+    row.className = `msgRow ${role}`;
+    row.innerHTML = `<div class="msgBubble">${text}</div><div class="msgTime">${getTime()}</div>`;
+    messages.appendChild(row);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function showTyping() {
+    const row = document.createElement("div");
+    row.className = "msgRow bot typingRow";
+    row.id = "typingRow";
+    row.innerHTML = `<div class="msgBubble"><div class="typingDot"></div><div class="typingDot"></div><div class="typingDot"></div></div>`;
+    messages.appendChild(row);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function removeTyping() { const t = document.getElementById("typingRow"); if (t) t.remove(); }
+  function removeChips()  { const c = document.getElementById("chipsRow");  if (c) c.remove(); }
+
+  async function sendMessage(text) {
+    const message = (text !== undefined ? text : input.value).trim();
+    if (!message) return;
+    removeChips();
+    input.value = ""; autoResize(input);
+    appendMsg("user", message);
+    showTyping();
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          max_tokens: 500,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user",   content: message }
+          ]
+        })
+      });
+      if (!res.ok) throw new Error(res.status);
+      const data = await res.json();
+      removeTyping();
+      appendMsg("bot", data.choices[0].message.content);
+    } catch {
+      removeTyping();
+      appendMsg("bot", "Something went wrong. Please try again shortly.");
+    }
+  }
+
+  function sendChip(btn) { sendMessage(btn.textContent.trim()); }
+  function handleKey(e)  { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+  function autoResize(el){ el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 80) + "px"; }
+
+  input.addEventListener("focus", () => {
+    if (isMobile()) setTimeout(() => messages.scrollTop = messages.scrollHeight, 400);
+  });
+
+  (function () {
+    const handle = document.getElementById("dragHandle");
+    let drag = false, ox = 0, oy = 0;
+    function start(cx, cy) {
+      if (isMobile()) return;
+      drag = true;
+      const r = panel.getBoundingClientRect();
+      ox = cx - r.left; oy = cy - r.top;
+      panel.style.bottom = "auto"; panel.style.right = "auto";
+      panel.style.left = r.left + "px"; panel.style.top = r.top + "px";
+      panel.classList.add("dragging");
+    }
+    function move(cx, cy) {
+      if (!drag) return;
+      let nx = cx - ox, ny = cy - oy;
+      nx = Math.max(0, Math.min(window.innerWidth  - panel.offsetWidth,  nx));
+      ny = Math.max(0, Math.min(window.innerHeight - panel.offsetHeight, ny));
+      panel.style.left = nx + "px"; panel.style.top = ny + "px";
+    }
+    function end() { drag = false; panel.classList.remove("dragging"); }
+    handle.addEventListener("mousedown",   e => { if (!e.target.closest(".closeBtn")) start(e.clientX, e.clientY); });
+    document.addEventListener("mousemove", e => move(e.clientX, e.clientY));
+    document.addEventListener("mouseup",   end);
+  })();
+</script>
+</body>
+</html>
