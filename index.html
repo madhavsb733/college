@@ -383,7 +383,6 @@
       border: 1px solid var(--chatBorder);
     }
 
-    /* Bot message formatting */
     .msgRow.bot .msgBubble ul {
       padding-left: 4px;
       margin: 4px 0 2px;
@@ -618,16 +617,18 @@ CONTACT: Phone: 0471-XXXXXXX | Email: info@christnagar.ac.in | Website: cnc.ac.i
 LOCATION: Maranalloor, near Kattakkada Junction, Thiruvananthapuram.
 `;
 
-  const SYSTEM_PROMPT = `You are a concise assistant for Christ Nagar College, Trivandrum.
-Answer ONLY using the college information provided. Do not use outside knowledge.
-If something is not in the data, say: "I don't have that info. Please call 0471-XXXXXXX."
+  const SYSTEM_PROMPT = `You are a friendly assistant for Christ Nagar College, Trivandrum.
 
-STRICT RESPONSE RULES:
+GREETING RULE (highest priority):
+- If the user sends ONLY a greeting (hello, hi, hey, heyy, hlo, howdy, good morning, good evening, etc.) with no question, respond ONLY with a warm, brief greeting back. Example: "Hello! How can I help you with Christ Nagar College today?" — nothing else. Do NOT mention college info unprompted.
+
+GENERAL RULES:
+- Answer college questions ONLY using the college information provided below. Do not use outside knowledge.
+- If something is not in the data, say: "I don't have that info. Please call 0471-XXXXXXX."
 - Maximum 3 sentences OR a short bullet list (max 5 items). Never both.
 - No long paragraphs. No repetition. Be direct.
 - For lists, use "- " at the start of each item on a new line.
 - Plain text only — no markdown bold, no asterisks, no headers.
-- If asked something general like "how is the college", give 2–3 short sentences only.
 
 --- COLLEGE INFORMATION ---
 ${COLLEGE_DATA}`;
@@ -679,7 +680,6 @@ ${COLLEGE_DATA}`;
     return new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
   }
 
-  // Render plain-text bot response into clean HTML
   function formatResponse(text) {
     const lines = text.split('\n');
     let html = '';
