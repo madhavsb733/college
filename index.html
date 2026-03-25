@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CNC Chatbot </title>
+  <title>CNC Chatbot</title>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -592,46 +592,8 @@
 </div>
 
 <script>
-  const GROQ_API_KEY = "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";
-
-  const COLLEGE_DATA = `
-COLLEGE NAME: Christ Nagar College, Maranalloor, Thiruvananthapuram, Kerala
-
-ABOUT: Established 2012. Affiliated to University of Kerala. Managed by CMI. 37-acre eco-friendly campus near Kattakkada.
-
-COURSES (UG): BCA, BBA, B.Com (Finance/Cooperation), BA English, B.Sc Psychology, B.Sc Computer Science — all 3 years.
-COURSES (PG): M.Com (Finance), M.Sc (selected subjects).
-
-FEES (approx/year): BCA ₹40k–50k | BBA ₹35k–45k | B.Com ₹30k–40k. Fees may vary yearly.
-
-ADMISSION: Applications open June, close July. Eligibility: Plus Two pass. Merit-based selection. Docs: SSLC & Plus Two certificates, TC, photos, ID proof.
-
-FACILITIES: Smart classrooms, computer labs, library, seminar halls, sports ground, cafeteria, hostel (boys & girls), college buses, parking.
-
-PLACEMENT: Placement cell, career guidance, interview prep, internship support. Recruiters: IT firms, startups, local companies.
-
-TIMING: Classes 9AM–3:30PM | Office 9AM–4PM | Mon–Sat.
-
-CONTACT: Phone: 0471-XXXXXXX | Email: info@christnagar.ac.in | Website: cnc.ac.in
-
-LOCATION: Maranalloor, near Kattakkada Junction, Thiruvananthapuram.
-`;
-
-  const SYSTEM_PROMPT = `You are a friendly assistant for Christ Nagar College, Trivandrum.
-
-GREETING RULE (highest priority):
-- If the user sends ONLY a greeting (hello, hi, hey, heyy, hlo, howdy, good morning, good evening, etc.) with no question, respond ONLY with a warm, brief greeting back. Example: "Hello! How can I help you with Christ Nagar College today?" — nothing else. Do NOT mention college info unprompted.
-
-GENERAL RULES:
-- Answer college questions ONLY using the college information provided below. Do not use outside knowledge.
-- If something is not in the data, say: "I don't have that info. Please call 0471-XXXXXXX."
-- Maximum 3 sentences OR a short bullet list (max 5 items). Never both.
-- No long paragraphs. No repetition. Be direct.
-- For lists, use "- " at the start of each item on a new line.
-- Plain text only — no markdown bold, no asterisks, no headers.
-
---- COLLEGE INFORMATION ---
-${COLLEGE_DATA}`;
+  // ── BACKEND URL (from first file) ──
+  const BACKEND_URL = "https://christ-nagar-chatbot.onrender.com/chat";
 
   const panel    = document.getElementById("chatPanel");
   const messages = document.getElementById("messageArea");
@@ -680,6 +642,7 @@ ${COLLEGE_DATA}`;
     return new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
   }
 
+  // ── Rich text formatter (from second file) ──
   function formatResponse(text) {
     const lines = text.split('\n');
     let html = '';
@@ -723,6 +686,7 @@ ${COLLEGE_DATA}`;
   function removeTyping() { const t = document.getElementById("typingRow"); if (t) t.remove(); }
   function removeChips()  { const c = document.getElementById("chipsRow");  if (c) c.remove(); }
 
+  // ── Send via Render backend (from first file) ──
   async function sendMessage(text) {
     const message = (text !== undefined ? text : input.value).trim();
     if (!message) return;
@@ -732,30 +696,20 @@ ${COLLEGE_DATA}`;
     showTyping();
 
     try {
-      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      const res = await fetch(BACKEND_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${GROQ_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          max_tokens: 180,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user",   content: message }
-          ]
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: message })
       });
 
       if (!res.ok) throw new Error(res.status);
       const data = await res.json();
       removeTyping();
-      appendMsg("bot", data.choices[0].message.content);
+      appendMsg("bot", data.response);
 
     } catch {
       removeTyping();
-      appendMsg("bot", "Something went wrong. Please try again shortly.");
+      appendMsg("bot", "Something went wrong. Please try again shortly or contact the college office at 0471-XXXXXXX.");
     }
   }
 
@@ -763,6 +717,7 @@ ${COLLEGE_DATA}`;
   function handleKey(e)  { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
   function autoResize(el){ el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 80) + "px"; }
 
+  // ── Drag to reposition ──
   (function () {
     const handle = document.getElementById("dragHandle");
     let drag = false, ox = 0, oy = 0;
